@@ -4,7 +4,6 @@ import jax.numpy as jnp
 import jax.random as jr
 from jax import vmap
 import matplotlib.pyplot as plt
-import time
 
 key = jr.PRNGKey(1)
 key_A, key_hutch = jr.split(key)
@@ -14,10 +13,10 @@ def hutchinson_trace_convergence(key, A, m, p = 1):
     n = A.shape[0]
     
     #Generate m random vectors of size n
-    # random_vecs = jr.rademacher(key, shape=(m,n), dtype=jnp.float64)
+    random_vecs = jr.rademacher(key, shape=(m,n), dtype=jnp.float64)
     # random_vecs = jr.uniform(key, shape = (m,n), dtype=jnp.float64, minval=-jnp.sqrt(3), maxval=jnp.sqrt(3))
     # random_vecs = jr.normal(key, shape=(m, n), dtype=jnp.float64)
-    random_vecs =jnp.array([[-1.0,1.0,-1.0],[1.0,1.0,1.0],[-1.0,-1.0,1.0]])
+    # random_vecs =jnp.array([[-1.0,1.0,-1.0],[1.0,1.0,1.0],[-1.0,-1.0,1.0]])
 
     def vAv(v):
         #Vector-matrix multiplication      
@@ -48,8 +47,7 @@ A = jnp.array([[10.0,1.0,2.0],[1.0,20.0,1.0],[2.0,1.0,10.0]])
 p = 1
 
 #m_max = number of random vectors the cumulation terminates at
-m_max = 3
-
+m_max = 10000
 # Calculate the actual trace of A^p
 def actual(A, p): 
     return jnp.trace(jnp.linalg.matrix_power(A, p))
@@ -131,35 +129,38 @@ squared_errors = (estimates - actual_trace)**2
 #Calculate cumulative RMSE over all running estimates up to each m
 RMSE= jnp.sqrt(jnp.cumsum(squared_errors) / m_values)
 
+#Calculate the theoretical cumulative RMS using the harmonic sum of inverse sample sizes
+cumulative_RMS = standard_error*jnp.sqrt(jnp.cumsum(1.0 / m_values))
+
 #Plot cumulative RMSE and estimated standard error on log-log axes
 plt.figure(figsize=(10, 6))
 plt.loglog(m_values, RMSE, label="Cumulative RMSE")
-plt.loglog(m_values, standard_error, "--",label=r"Absolute standard error $\sigma/\sqrt{m}$")
+plt.loglog(m_values, cumulative_RMS, "--",label=r"Root mean square error $\sigma/\sqrt{m}\sqrt{\sum_{k=1}^m\frac{1}{k}}$")
 
 #Label and display the cumulative RMSE convergence plot
 plt.xlabel("Number of Random Vectors (m)")
 plt.ylabel("RMSE")
-plt.title("Hutchinson Trace Estimator: Cumulative RMSE Convergence")
+plt.title("Hutchinson Trace Estimator: RMSE Convergence")
 plt.legend()
 plt.grid(True, which="both", alpha=0.3)
 plt.show()
 
 #VALIDATION
-#Display the computed values for comparison with manual calculations
-print("Samples:", samples)
-print("Estimates:", estimates)
-print("Actual Trace:", actual_trace)
-print("Squared Errors:", squared_errors)
-print("Cumulative RMSE:", RMSE)
+# #Display the computed values for comparison with manual calculations
+# print("Samples:", samples)
+# print("Estimates:", estimates)
+# print("Actual Trace:", actual_trace)
+# print("Squared Errors:", squared_errors)
+# print("Cumulative RMSE:", RMSE)
 
-#Define the expected results for the three predetermined test vectors
-expected_samples = jnp.array([40.0, 48.0, 36.0])
-expected_estimates = jnp.array([40.0, 44.0, 124.0 / 3.0])
-expected_rmse = jnp.array([0.0, jnp.sqrt(8.0), jnp.sqrt(160.0 / 27.0)])
+# #Define the expected results for the three predetermined test vectors
+# expected_samples = jnp.array([40.0, 48.0, 36.0])
+# expected_estimates = jnp.array([40.0, 44.0, 124.0 / 3.0])
+# expected_rmse = jnp.array([0.0, jnp.sqrt(8.0), jnp.sqrt(160.0 / 27.0)])
 
-#Verify that the computed samples, estimates, and RMSE match expectations
-assert jnp.allclose(samples, expected_samples)
-assert jnp.allclose(estimates, expected_estimates)
-assert jnp.allclose(RMSE, expected_rmse)
+# #Verify that the computed samples, estimates, and RMSE match expectations
+# assert jnp.allclose(samples, expected_samples)
+# assert jnp.allclose(estimates, expected_estimates)
+# assert jnp.allclose(RMSE, expected_rmse)
 
-print("All validation tests passed!")
+# print("All validation tests passed!")
