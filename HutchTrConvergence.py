@@ -38,16 +38,19 @@ def hutchinson_trace_convergence(key, A, m, p = 1):
     return estimates, samples
 
 #Generate test matrix
-# A = jr.normal(key_A, shape=(20000, 20000))
+n = 1000
+print(f"n = {n}")
+# A = jr.normal(key_A, shape=(n, n))
+# A = A + 10*jnp.eye(n)
 # A = jnp.diag(jnp.arange(1.0, 1001.0))
 # A = A + jnp.ones((1000,1000))*.01
 A = jnp.array([[10.0,1.0,2.0],[1.0,20.0,1.0],[2.0,1.0,10.0]])
 
 #p = matrix degree
-p = 1
+p = 2
 
 #m_max = number of random vectors the cumulation terminates at
-m_max = 10000
+m_max = 1000
 # Calculate the actual trace of A^p
 def actual(A, p): 
     return jnp.trace(jnp.linalg.matrix_power(A, p))
@@ -143,6 +146,74 @@ plt.ylabel("RMSE")
 plt.title("Hutchinson Trace Estimator: RMSE Convergence")
 plt.legend()
 plt.grid(True, which="both", alpha=0.3)
+plt.show()
+
+#Number of independent trials
+R = 100
+
+#Generate 100 independent random keys
+keys = jr.split(key_hutch, R)
+
+#Run Hutchinson estimator independently for each key
+def trial(key):
+    estimates, samples = hutchinson_trace_convergence(key, A, m_max, p)
+    return estimates, samples
+
+#Vectorize across the 100 trials
+all_estimates, all_samples = vmap(trial)(keys)
+
+#Calculate squared error for every trial at every m
+squared_errors = (all_estimates - actual_trace)**2
+
+#Calculate RMSE across the 100 trials at each m
+RMSE = jnp.sqrt(jnp.mean(squared_errors, axis=0))
+
+#Estimate standard deviation of individual Hutchinson samples
+std = jnp.std(all_samples, ddof=1)
+
+#Calculate theoretical RMSE
+theoretical_RMSE = std / jnp.sqrt(m_values)
+
+# Empirical RMSE slope
+empirical_coeffs = jnp.polyfit(
+    jnp.log10(m_values),
+    jnp.log10(RMSE), 1
+)
+
+# Theoretical RMSE slope
+theoretical_coeffs = jnp.polyfit(
+    jnp.log10(m_values),
+    jnp.log10(theoretical_RMSE), 1
+)
+
+print(f"Empirical RMSE slope: {float(empirical_coeffs[0]):.4f}")
+print(f"Theoretical RMSE slope: {float(theoretical_coeffs[0]):.4f}")
+
+#Plot the empirical and theoretical RMSE
+plt.figure(figsize=(10, 6))
+
+#Plot each individual trial's absolute forward error
+for i in range(R):
+    plt.loglog(m_values,
+               jnp.abs(all_estimates[i] - actual_trace),
+               color="gray", alpha=0.08, linewidth=0.7)
+
+#Plot empirical RMSE across 100 trials
+plt.loglog(m_values, RMSE,
+           color="blue", linewidth=2,
+           label="Empirical RMSE (100 trials)")
+
+#Plot theoretical RMSE
+plt.loglog(m_values, theoretical_RMSE, "--",
+           color="red", linewidth=2,
+           label=r"Theoretical RMSE $\sigma/\sqrt{m}$")
+
+plt.xlabel("Number of Random Vectors (m)")
+plt.ylabel("Absolute Error / RMSE")
+plt.title("Hutchinson Trace Estimator: RMSE Convergence")
+plt.legend()
+plt.grid(True, which="both", alpha=0.3)
+plt.ylim(bottom=1)
 plt.show()
 
 #VALIDATION

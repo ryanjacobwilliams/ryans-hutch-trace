@@ -83,7 +83,7 @@ print(f"Computation time of actual trace: {toc - tic:.6f} seconds\n")
 
 #Absolute forward error
 AFE = abs(actual_trace - estimated_trace)
-print(f"Absolute forward error: {AFE*100:.3f}")
+print(f"Absolute forward error: {AFE:.3f}")
 #Relative forward error
 RFE = AFE / abs(actual_trace)
 print(f"Relative forward error: {RFE*100:.3f} %")
