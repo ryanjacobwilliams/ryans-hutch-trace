@@ -66,8 +66,8 @@ def H(q, p, U):
 #====================================
 
 # Test parameters
-q = jnp.array([1.0, 2.0])
-p = jnp.array([0.5, 0.5])
+q = jnp.array([1.0, 2.0, 3.0])
+p = jnp.array([0.5, 0.5, 0.5])
 
 # Perform one AVF step
 Q_gauss, P_gauss = AVF(q, p, tau=0.1, U=U_gauss)
@@ -102,6 +102,7 @@ def AVF_Jacobian(key, DqF, DQF, tau, m):
 
     # Difference between the two matrices
     A = DqF - DQF
+    print("Jacobian:", A)
 
     # Estimate the trace of the difference
     trace_A = hutchinson_trace_estimator(key, A, m)
@@ -125,11 +126,11 @@ exact = jnp.linalg.det(I + (tau**2 / 2)*Dq) / \
 
 # Hutchinson approximation
 key = jax.random.PRNGKey(1)
-estimate = AVF_Jacobian(key, Dq, DQ, tau, m=100)
 
 print("==============================")
 print("Determinate test for p-Gauss")
 print("==============================")
+estimate = AVF_Jacobian(key, Dq, DQ, tau, m=100)
 print("Exact Jacobian determinant:", exact)
 print("Hutchinson approximation:", estimate)
 print("Absolute error:", jnp.abs(exact - estimate))
@@ -143,12 +144,10 @@ DQ = DQF(Q_neal, q, U_neal)
 exact = jnp.linalg.det(I + (tau**2 / 2)*Dq) / \
         jnp.linalg.det(I + (tau**2 / 2)*DQ)
 
-# Hutchinson approximation
-estimate = AVF_Jacobian(key, Dq, DQ, tau, m=100)
-
 print("==============================")
 print("Determinate test for Neal's Funnel")
 print("==============================")
+estimate = AVF_Jacobian(key, Dq, DQ, tau, m=100)
 print("Exact Jacobian determinant:", exact)
 print("Hutchinson approximation:", estimate)
 print("Absolute error:", jnp.abs(exact - estimate))
