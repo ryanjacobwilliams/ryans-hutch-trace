@@ -105,7 +105,7 @@ def AVF_Jacobian(key, DqF, DQF, tau, m):
     print("Jacobian:", A)
 
     # Estimate the trace of the difference
-    trace_A = hutchinson_trace_estimator(key, A, m)
+    trace_A = jnp.trace(A)
     trace_DQF = hutchinson_trace_estimator(key, DQF, m, 2)
     trace_DqF = hutchinson_trace_estimator(key, DqF, m, 2)
 
